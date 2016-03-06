@@ -46,6 +46,9 @@
  * @author Anton Babushkin <anton@px4.io>
  */
 
+// TODO-JYW: TESTING-TESTING
+#define DEBUG_BUILD 1
+
 #include <board_config.h>
 
 #include <px4_config.h>
@@ -98,7 +101,9 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/rc_parameter_map.h>
 
-#include "DevMgr.hpp"
+#include <DevMgr.hpp>
+
+#include "sensors_init.h"
 
 using namespace DriverFramework;
 
@@ -293,6 +298,8 @@ private:
 
 		int rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
+		int rc_map_flightmode;
+
 		int32_t rc_fails_thr;
 		float rc_assist_th;
 		float rc_auto_th;
@@ -359,6 +366,8 @@ private:
 							  _parameters struct are not existing
 							  because these parameters are never read. */
 
+		param_t rc_map_flightmode;
+
 		param_t rc_fails_thr;
 		param_t rc_assist_th;
 		param_t rc_auto_th;
@@ -390,26 +399,6 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
-
-	/**
-	 * Do accel-related initialisation.
-	 */
-	int		accel_init();
-
-	/**
-	 * Do gyro-related initialisation.
-	 */
-	int		gyro_init();
-
-	/**
-	 * Do mag-related initialisation.
-	 */
-	int		mag_init();
-
-	/**
-	 * Do baro-related initialisation.
-	 */
-	int		baro_init();
 
 	/**
 	 * Do adc-related initialisation.
@@ -615,6 +604,8 @@ Sensors::Sensors() :
 		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
+	_parameter_handles.rc_map_flightmode = param_find("RC_MAP_FLTMODE");
+
 	/* RC thresholds */
 	_parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
 	_parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
@@ -805,6 +796,8 @@ Sensors::parameters_update()
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
+	param_get(_parameter_handles.rc_map_flightmode, &(_parameters.rc_map_flightmode));
+
 	param_get(_parameter_handles.rc_fails_thr, &(_parameters.rc_fails_thr));
 	param_get(_parameter_handles.rc_assist_th, &(_parameters.rc_assist_th));
 	_parameters.rc_assist_inv = (_parameters.rc_assist_th < 0);
@@ -945,6 +938,9 @@ Sensors::parameters_update()
 	DevHandle h_baro;
 	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
 
+#ifndef __PX4_QURT
+
+	// TODO: this needs fixing for QURT
 	if (!h_baro.isValid()) {
 		warnx("ERROR: no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
 		return ERROR;
@@ -958,107 +954,11 @@ Sensors::parameters_update()
 		}
 	}
 
-	return OK;
-}
-
-int
-Sensors::accel_init()
-{
-	DevHandle h_accel;
-	DevMgr::getHandle(ACCEL0_DEVICE_PATH, h_accel);
-
-	if (!h_accel.isValid()) {
-		warnx("FATAL: no accelerometer found: %s (%d)", ACCEL0_DEVICE_PATH, h_accel.getError());
-		return ERROR;
-
-	} else {
-
-		/* set the accel internal sampling rate to default rate */
-		h_accel.ioctl(ACCELIOCSSAMPLERATE, ACCEL_SAMPLERATE_DEFAULT);
-
-		/* set the driver to poll at default rate */
-		h_accel.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-	}
+#endif
 
 	return OK;
 }
 
-int
-Sensors::gyro_init()
-{
-	DevHandle h_gyro;
-	DevMgr::getHandle(GYRO0_DEVICE_PATH, h_gyro);
-
-	if (!h_gyro.isValid()) {
-		warnx("FATAL: no gyro found: %s (%d)", GYRO0_DEVICE_PATH, h_gyro.getError());
-		return ERROR;
-
-	}
-
-	/* set the gyro internal sampling rate to default rate */
-	h_gyro.ioctl(GYROIOCSSAMPLERATE, GYRO_SAMPLERATE_DEFAULT);
-
-	/* set the driver to poll at default rate */
-	h_gyro.ioctl(SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-
-	return OK;
-}
-
-int
-Sensors::mag_init()
-{
-	int	ret;
-
-	DevHandle h_mag;
-	DevMgr::getHandle(MAG0_DEVICE_PATH, h_mag);
-
-	if (!h_mag.isValid()) {
-		warnx("FATAL: no magnetometer found: %s (%d)", MAG0_DEVICE_PATH, h_mag.getError());
-		return ERROR;
-	}
-
-	/* try different mag sampling rates */
-
-
-	ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 150);
-
-	if (ret == OK) {
-		/* set the pollrate accordingly */
-		h_mag.ioctl(SENSORIOCSPOLLRATE, 150);
-
-	} else {
-		ret = h_mag.ioctl(MAGIOCSSAMPLERATE, 100);
-
-		/* if the slower sampling rate still fails, something is wrong */
-		if (ret == OK) {
-			/* set the driver to poll also at the slower rate */
-			h_mag.ioctl(SENSORIOCSPOLLRATE, 100);
-
-		} else {
-			warnx("FATAL: mag sampling rate could not be set");
-			return ERROR;
-		}
-	}
-
-	return OK;
-}
-
-int
-Sensors::baro_init()
-{
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
-
-	if (!h_baro.isValid()) {
-		warnx("FATAL: No barometer found: %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-		return ERROR;
-	}
-
-	/* set the driver to poll at 150Hz */
-	h_baro.ioctl(SENSORIOCSPOLLRATE, 150);
-
-	return OK;
-}
 
 int
 Sensors::adc_init()
@@ -1978,8 +1878,7 @@ Sensors::rc_poll()
 		}
 
 		if (!signal_lost) {
-			struct manual_control_setpoint_s manual;
-			memset(&manual, 0 , sizeof(manual));
+			struct manual_control_setpoint_s manual = {};
 
 			/* fill values in manual_control_setpoint topic only if signal is valid */
 			manual.timestamp = rc_input.timestamp_last_signal;
@@ -1995,6 +1894,19 @@ Sensors::rc_poll()
 			manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
 			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+
+			if (_parameters.rc_map_flightmode > 0) {
+
+				const float slot_min = -1.0f;
+				const float slot_max = 1.0f;
+				/* the number of valid slots is one less than the max marker */
+				const unsigned num_slots = manual_control_setpoint_s::MODE_SLOT_MAX - 1;
+				/* we need the maximum index below, not the number of slots, so slots - 1 */
+				const unsigned max_index = num_slots - 1;
+
+				manual.mode_slot = ((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * max_index) / (slot_max - slot_min);
+
+			}
 
 			/* mode switches */
 			manual.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
@@ -2090,29 +2002,13 @@ Sensors::task_main()
 	/* start individual sensors */
 	int ret = 0;
 
-	do { /* create a scope to handle exit with break */
-		ret = accel_init();
+	/* This calls a sensors_init which can have different implementations on NuttX, POSIX, QURT. */
+	ret = sensors_init();
 
-		if (ret) { break; }
-
-		ret = gyro_init();
-
-		if (ret) { break; }
-
-		ret = mag_init();
-
-		if (ret) { break; }
-
-		ret = baro_init();
-
-		if (ret) { break; }
-
-		ret = adc_init();
-
-		if (ret) { break; }
-
-		break;
-	} while (0);
+#ifndef __PX4_QURT
+	// TODO: move adc_init into the sensors_init call.
+	ret = ret || adc_init();
+#endif
 
 	if (ret) {
 		warnx("sensor initialization failed");
@@ -2219,7 +2115,15 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warnx("sens: poll error %d, %d", pret, errno);
+			/* if the polling operation failed because no gyro sensor is available yet,
+			 * then attempt to subscribe once again
+			 */
+			if (_gyro_count == 0) {
+				_gyro_count = init_sensor_class(ORB_ID(sensor_gyro), &_gyro_sub[0],
+								&raw.gyro_priority[0], &raw.gyro_errcount[0]);
+				fds[0].fd = _gyro_sub[0];
+			}
+
 			continue;
 		}
 
@@ -2235,13 +2139,14 @@ Sensors::task_main()
 		mag_poll(raw);
 		baro_poll(raw);
 
-#ifndef __PX4_POSIX
+		// FIXME TODO: this needs more thinking, otherwise we spam the console and keep switching.
+		/* Work out if main gyro timed out and fail over to alternate gyro.
+		 * However, don't do this if the secondary is not available. */
+		if (hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000 && _gyro_sub[1] >= 0) {
+			warnx("gyro has timed out");
 
-		/* work out if main gyro timed out and fail over to alternate gyro */
-		if (raw.gyro_timestamp[0] > 0 && hrt_elapsed_time(&raw.gyro_timestamp[0]) > 20 * 1000) {
-
-			/* if the secondary failed as well, go to the tertiary */
-			if (_gyro_sub[2] >= 0 && (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000)) {
+			/* If the secondary failed as well, go to the tertiary, also only if available. */
+			if (hrt_elapsed_time(&raw.gyro_timestamp[1]) > 20 * 1000 && _gyro_sub[2] >= 0) {
 				fds[0].fd = _gyro_sub[2];
 				warnx("failing over to third gyro");
 
@@ -2250,8 +2155,6 @@ Sensors::task_main()
 				warnx("failing over to second gyro");
 			}
 		}
-
-#endif
 
 		/* check battery voltage */
 		adc_poll(raw);
