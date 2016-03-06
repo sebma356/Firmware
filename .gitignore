@@ -2,7 +2,6 @@
 !ROMFS/*/*.d
 !ROMFS/*/*/*.d
 !ROMFS/*/*/*/*.d
-*.px4log
 *.dSYM
 *.o
 *.pyc

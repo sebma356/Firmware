@@ -2186,7 +2186,7 @@ fail:
 		*g_dev_ptr = nullptr;
 	}
 
-	errx(1, "no device on this bus");
+	errx(1, "driver start failed");
 }
 
 void

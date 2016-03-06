@@ -38,8 +38,6 @@
  */
 
 #include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_defines.h>
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <semaphore.h>
@@ -89,7 +87,7 @@ static void hrt_unlock(void)
 	px4_sem_post(&_hrt_lock);
 }
 
-#if (defined(__APPLE__) && defined(__MACH__))
+#if (defined(__APPLE__) && defined(__MACH__)) || defined(__PX4_QURT)
 #include <time.h>
 #include <sys/time.h>
 #define CLOCK_REALTIME 0
@@ -117,15 +115,6 @@ int px4_clock_settime(clockid_t clk_id, struct timespec *tp)
 {
 	/* do nothing right now */
 	return 0;
-}
-
-#elif defined(__QURT)
-
-#include "dspal_time.h"
-
-int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)
-{
-	return clock_gettime(clk_id, tp);
 }
 
 #endif

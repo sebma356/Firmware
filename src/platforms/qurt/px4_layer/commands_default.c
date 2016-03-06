@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,55 +30,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/**
+ * @file commands_default.c
+ * Commands to run for the "qurt_eagle_default" config
+ *
+ * @author Mark Charlebois <charlebm@gmail.com>
+ */
 
-#include <string.h>
-#include "modules/uORB/uORBManager.hpp"
-#include "uORBKraitFastRpcChannel.hpp"
+#include "get_commands.h"
 
-extern "C" { __EXPORT int muorb_main(int argc, char *argv[]); }
-
-static void usage()
+const char *get_commands()
 {
-	warnx("Usage: muorb 'start', 'stop', 'status'");
-}
 
+	static const char *commands =
+		"uorb start\n"
+		"param set CAL_GYRO0_ID 2293760\n"
+		"param set CAL_ACC0_ID 1310720\n"
+		"param set CAL_ACC1_ID 1376256\n"
+		"param set CAL_MAG0_ID 196608\n"
+		"commander start\n"
 
-int
-muorb_main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		usage();
-		return -EINVAL;
-	}
+		;
 
-	/*
-	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
-	 */
-	if (!strcmp(argv[1], "start")) {
-		// register the fast rpc channel with UORB.
-		uORB::Manager::get_instance()->set_uorb_communicator(uORB::KraitFastRpcChannel::GetInstance());
+	return commands;
 
-		// start the KaitFastRPC channel thread.
-		uORB::KraitFastRpcChannel::GetInstance()->Start();
-		return OK;
-
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-
-		uORB::KraitFastRpcChannel::GetInstance()->Stop();
-		return OK;
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "status")) {
-		return OK;
-	}
-
-	usage();
-	return -EINVAL;
 }

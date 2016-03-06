@@ -204,7 +204,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_FF, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_P, 1.25f);
+PARAM_DEFINE_FLOAT(MPC_XY_P, 1.0f);
 
 /**
  * Proportional gain for horizontal velocity error
@@ -242,12 +242,10 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
  *
  * @unit m/s
  * @min 0.0
- * @max 20.0
- * @increment 1
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 8.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_MAX, 5.0f);
 
 /**
  * Horizontal velocity feed forward
@@ -337,7 +335,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_P_MAX, 35.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 120.0f);
 
 /**
  * Deadzone of X,Y sticks where position hold is enabled
@@ -358,7 +356,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_XY_DZ, 0.1f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.5f);
 
 /**
  * Maximum vertical velocity for which position hold is enabled (use 0 to disable check)
@@ -368,7 +366,7 @@ PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_XY, 0.8f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.6f);
+PARAM_DEFINE_FLOAT(MPC_HOLD_MAX_Z, 0.5f);
 
 /**
  * Low pass filter cut freq. for numerical velocity derivative
@@ -385,9 +383,8 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  *
  * @unit m/s/s
  * @min 2.0
- * @max 15.0
- * @increment 1
+ * @max 10.0
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 4.0f);
